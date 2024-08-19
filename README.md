@@ -1,4 +1,4 @@
-## ~4000 Time Series Analysis and Forecasting wiht R
+## ~4000 Time Series Analysis and Forecasting with R
 ### This repository contains code and resources for forecasting sales using R. Sales forecasting is a critical task for businesses to predict future sales and make informed decisions about inventory, staffing and marketing strategies.
 
 ### Workflow Overview
