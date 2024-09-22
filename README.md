@@ -1,5 +1,5 @@
 ## ~4000 Time Series Analysis and Forecasting wiht R
-### This repository contains code and resources for forecasting sales using R. Sales forecasting is a critical task for businesses to predict future sales and make informed decisions about inventory, staffing and marketing strategies.
+### This repository offers a comprehensive, user-friendly toolkit for sales forecasting using R. From raw data to an interactive dashboard, this project streamlines the entire process of forecasting sales, helping businesses make data-driven decisions about inventory, staffing, and marketing. Whether you're a business owner or a data analyst, this project is designed for flexibility and ease of use, allowing you to quickly generate and visualize sales predictions.
 
 ### Workflow Overview
 - **Data Preparation**: Includes cleaning, transforming, and structuring the raw sales dataset.
@@ -15,7 +15,7 @@
 - **Feature Correlation**: Displays correlations between features and sales, aiding in understanding the factors influencing sales.
 
 ### Getting Started
-Shiny App can be run without any setup, click on [shinyapp.io](https://sagravela.shinyapps.io/shiny_app/). To reproduce the results locally, clone the repository and create an environment from the `environment.yml` file with `conda create -f environment.yml`, then make a `model/` folder in the workspace root to save the trained models. Finally, run each script in order.
+Shiny App can be run without any setup, click on [shinyapp.io](https://sagravela.shinyapps.io/shiny_app/). To run this locally, all the requirements are in `environment.yml` file. Then make a `model/` folder in the workspace root to save the trained models before running each script in order.
 
 ---
 ### Dataset Overview: Breakfast at the Frat, a Time Series Analysis
