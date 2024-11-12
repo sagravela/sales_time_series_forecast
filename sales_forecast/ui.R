@@ -20,11 +20,11 @@ ui <- fluidPage(
   tabsetPanel(
     tabPanel("Products Data", DT::dataTableOutput("products"), hr()),
     tabPanel("Store Data", DT::dataTableOutput("store"), hr()),
-    tabPanel(
-      "Correlations",
-      fluidRow(hr(), column(10, withSpinner(plotOutput("corr", height = "800px")), offset = 1)),
-      hr()
-    ),
+    # tabPanel(
+    #   "Correlations",
+    #   fluidRow(hr(), column(10, withSpinner(plotOutput("corr", height = "800px")), offset = 1)),
+    #   hr()
+    # ),
     tabPanel(
       "TS Plot",
       hr(),

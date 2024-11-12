@@ -105,33 +105,33 @@ server <- function(input, output) {
     )
   })
 
-  # Render Correlation plot
-  output$corr <- renderPlot({
-    tryCatch(
-      {
-        rtransactions_final() |>
-          as_tibble() |>
-          mutate(
-            feature = ifelse(feature == 1, "True", "False"),
-            display = ifelse(display == 1, "True", "False"),
-            tpr_only = ifelse(tpr_only == 1, "True", "False")
-          ) |>
-          select(
-            -upc_id,
-            -store_id,
-            -week,
-            -week_end_date
-          ) |>
-          GGally::ggpairs()
-      },
-      error = function(e) {
-        # If error is arised, return void plot
-        ggplot() +
-          theme_void() +
-          labs(title = "Not valid TS.")
-      }
-    )
-  })
+  # # Render Correlation plot
+  # output$corr <- renderPlot({
+  #   tryCatch(
+  #     {
+  #       rtransactions_final() |>
+  #         as_tibble() |>
+  #         mutate(
+  #           feature = ifelse(feature == 1, "True", "False"),
+  #           display = ifelse(display == 1, "True", "False"),
+  #           tpr_only = ifelse(tpr_only == 1, "True", "False")
+  #         ) |>
+  #         select(
+  #           -upc_id,
+  #           -store_id,
+  #           -week,
+  #           -week_end_date
+  #         ) |>
+  #         GGally::ggpairs()
+  #     },
+  #     error = function(e) {
+  #       # If error is arised, return void plot
+  #       ggplot() +
+  #         theme_void() +
+  #         labs(title = "Not valid TS.")
+  #     }
+  #   )
+  # })
 
   # Render Forecast plot
   output$forecast <- renderPlotly({
