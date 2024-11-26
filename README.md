@@ -1,4 +1,4 @@
-# ~4000 Time Series Analysis and Forecasting wiht R
+# ~4000 Time Series Analysis and Forecasting with R
 
  This repository offers a comprehensive, user-friendly toolkit for sales forecasting using R. From raw data to an interactive dashboard, this project streamlines the entire process of forecasting sales, helping businesses make data-driven decisions about inventory, staffing, and marketing. Whether you're a business owner or a data analyst, this project is designed for flexibility and ease of use, allowing you to quickly generate and visualize sales predictions.
 
