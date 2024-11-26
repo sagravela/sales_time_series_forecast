@@ -1,0 +1,28 @@
+name: r-forecast
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - r-base
+  - r-essentials
+  - r-arrow
+  - r-tsibble
+  - r-fabletools
+  - r-feasts
+  - r-fable
+  - r-skimr
+  - r-furrr
+  - r-tictoc
+  - r-janitor
+  - r-caret
+  - r-measurements
+  - r-shiny
+  - r-bslib
+  - r-plotly
+  - r-htmltools
+  - r-sass
+  - r-dt
+  - r-shinycssloaders
+  - r-ggally
+  - r-urca
+  - r-jsonlite
