@@ -1,0 +1,10 @@
+name: sales-forecast-dashboard
+title: Sales Time Series Forecasting Dashboard
+username: sagravela
+account: sagravela
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13456145
+bundleId: 9420374
+url: https://sagravela.shinyapps.io/sales-forecast-dashboard/
+version: 1

@@ -1,0 +1,23 @@
+name: r-forecast
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - r-base
+  - r-tidyverse
+  - r-tsibble
+  - r-arrow
+  - r-readxl
+  - r-janitor
+  - r-measurements
+  - r-here
+  - r-skimr
+  - r-ggplot2
+  - r-plotly
+  - r-ggally
+  - r-glue
+  - r-purrr
+  - r-fable
+  - r-fabletools
+  - r-feasts
+  - r-progressr
