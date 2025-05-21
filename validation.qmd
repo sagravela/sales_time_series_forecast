@@ -1,0 +1,124 @@
+---
+title: "Model Validation"
+execute:
+  warning: false
+  message: false
+format:
+  html:
+    theme: flatly
+  pdf:
+    fontsize: 11pt
+df-print: kable
+fig-width: 6
+fig-height: 6
+---
+
+# Imports
+
+```{r}
+#| code-fold: true
+#| output: false
+
+# General
+library(tidyverse)
+
+# Visualization
+library(ggplot2)
+
+# Miscelaneous
+library(here)
+library(glue)
+```
+
+```{r}
+#| echo: false
+
+# Helper function to display a plot in Plotly if the report is in HTML format.
+render_plot <- function(p) {
+    if (knitr::is_html_output()) {
+        plotly::ggplotly(p)
+    } else {
+        p
+    }
+}
+```
+
+# Data Loading
+
+```{r}
+aicc <- readr::read_csv2(here("output", "validation", "aicc.csv"))
+rmse <- readr::read_csv2(here("output", "validation", "rmse.csv"))
+```
+
+{{< pagebreak >}}
+
+# Evaluation
+## AICc 
+
+```{r}
+#| code-fold: true
+
+# Create a column called `best_model` with the arima model which minimizes AICc, then count them.
+# Also, add the mean AICc among all models.
+arima_model_names <- c("arima_base", "arima_lagged", "arima_seasonal", "arima_seasonal_lagged")
+plt <- aicc %>%
+    ungroup() %>%
+    rowwise() %>%
+    mutate(
+        mean_aicc = mean(c_across(all_of(arima_model_names)), na.rm = TRUE),
+        best_model = names(.)[2 + which.min(c_across(all_of(arima_model_names)))]
+    ) |>
+    group_by(best_model) |>
+    summarise(
+        mean_aicc = mean(mean_aicc),
+        n_best_model = n()
+    ) |>
+    mutate(mean_aicc_text = paste("Mean AICc: ", round(mean_aicc, 2))) |>
+    ggplot(aes(best_model, n_best_model, fill = mean_aicc)) +
+    geom_bar(stat = "identity", show.legend = FALSE) +
+    geom_text(aes(label = mean_aicc_text), vjust = -0.5) +
+    labs(
+        title = "Best ARIMA models by AICc",
+        y = "Number of best models by AICc",
+        caption = glue("Models: {paste(arima_model_names, collapse = ', ')}"),
+    )
+
+render_plot(plt)
+```
+
+- The best model among arima variations is the lagged version of ARIMA.
+- Prophet model has more than 60% of null models so I will remove it from the mable.
+- Because NNETAR is very slow at predicting, I will remove it from the mable. Also, is not performing well in the validation set due to lack of historic data.
+
+{{< pagebreak >}}
+
+## RMSE
+
+Plot best models count by minimum RMSE among models with their median.
+
+```{r}
+#| code-fold: true
+
+plt <- rmse %>%
+    ungroup() %>%
+    rowwise() %>%
+    mutate(
+        best_model = names(.)[2 + which.min(c_across(c("arima_lagged", "stl")))],
+        mean_rmse = mean(c_across(c("arima_lagged", "stl")), na.rm = TRUE),
+    ) |>
+    group_by(best_model) |>
+    summarise(
+        # The median is used instead of the mean because the median is more robust to outliers
+        median_rmse = median(mean_rmse),
+        n_best_model = n()
+    ) |>
+    mutate(median_rmse_text = paste("Median RMSE: ", round(median_rmse, 2))) |>
+    ggplot(
+        aes(reorder(best_model, n_best_model, decreasing = TRUE), n_best_model, fill = median_rmse)
+    ) +
+    geom_bar(stat = "identity", show.legend = FALSE) +
+    geom_text(aes(label = median_rmse_text), vjust = -0.5) +
+    labs(x = NULL, y = "Number of best models by RMSE", title = "Models performance in validation set")
+
+render_plot(plt)
+```

@@ -1,0 +1,371 @@
+---
+title: "EDA"
+execute:
+  warning: false
+  message: false
+format:
+  html:
+    theme: flatly
+  pdf:
+    fontsize: 11pt
+df-print: kable
+fig-width: 6
+fig-height: 6
+---
+
+```{r}
+#| echo: false
+
+# Helper function to display a plot in Plotly if the report is in HTML format.
+render_plot <- function(p) {
+    if (knitr::is_html_output()) {
+        plotly::ggplotly(p)
+    } else {
+        p
+    }
+}
+```
+
+# Imports
+```{r}
+#| echo: true
+#| output: false
+
+# General
+library(tidyverse)
+library(tsibble)
+library(skimr)
+
+# Load and save data
+library(arrow)
+
+# Visualization
+library(ggplot2)
+library(GGally)
+
+# Miscelaneous
+library(glue)
+library(here)
+```
+
+# Data Loading
+```{r}
+#| echo: true
+
+#' Data loading
+#' Load raw data from Excel and clean their column names
+#' @returns A `list` of dataframes.
+load_data <- function() {
+    return(list(
+        store = read_parquet(
+            here("data", "processed", "store.parquet")
+        ),
+        products = read_parquet(
+            here("data", "processed", "products.parquet")
+        ),
+        transactions = read_parquet(
+            here("data", "processed", "transactions.parquet")
+        )
+    ))
+}
+
+data <- load_data()
+```
+
+# Summaries
+```{r}
+
+
+describe <- skim_with(
+    numeric = sfl(
+        mean = ~ round(mean(., na.rm = TRUE), 2),
+        sd = ~ round(sd(., na.rm = TRUE), 2),
+        min = ~ round(min(., na.rm = TRUE), 2),
+        max = ~ round(max(., na.rm = TRUE), 2),
+        p0 = NULL, p50 = NULL, p100 = NULL, hist = NULL
+    ),
+    append = TRUE
+)
+```
+
+
+## Transactions
+```{r}
+describe(as_tibble(data$transactions))
+```
+
+
+## Stores
+```{r}
+describe(data$store)
+```
+
+
+## Products
+```{r}
+describe(data$products)
+```
+
+# Outliers
+
+```{r}
+#' Outliers
+#'
+#' Print total number of outliers in transactions.
+#' @param transactions A `tsibble` containing the transactions dataset.
+#' @returns A `tibble` containing the outliers.
+outliers <- function(transactions) {
+    is_outlier <- function(x) {
+        return(
+            (x < quantile(x, 0.25, na.rm = TRUE) - 3 * IQR(x, na.rm = TRUE)) |
+                (x > quantile(x, 0.75, na.rm = TRUE) + 3 * IQR(x, na.rm = TRUE))
+        )
+    }
+
+    outliers <- transactions |>
+        as_tibble() |>
+        reframe(
+            across(
+                .cols = c(units, visits, hhs, spend, price, base_price),
+                .fns = is_outlier,
+                .names = "outlier_{.col}"
+            )
+        ) |>
+        mutate(
+            week = transactions$week,
+            store_id = transactions$store_id,
+            upc_id = transactions$upc_id,
+            .before = 1
+        )
+
+    # Number of outliers per feature
+    return(
+        outliers |>
+            select(contains("outlier")) |>
+            reframe(across(everything(), sum))
+    )
+}
+
+outliers(data$transactions)
+```
+
+# What is the range of prices offered on products?
+
+```{r}
+#' Price range
+#'
+#' Print the range of prices offered on products.
+#' @param transactions A `tsibble` containing the transactions data.
+#' @returns A `skim` summary.
+prices_range <- function(transactions) {
+    # Skim summary custom function
+    price_summary <- skim_with(
+        numeric = sfl(
+            min = ~ min(., na.rm = TRUE),
+            max = ~ max(., na.rm = TRUE),
+            mean = ~ mean(., na.rm = TRUE),
+            sd = ~ sd(., na.rm = TRUE)
+        ),
+        append = FALSE
+    )
+
+    prices_range <- transactions |>
+        as_tibble() |>
+        select(upc_id, price) |>
+        group_by(upc_id) |>
+        price_summary()
+    return(prices_range)
+}
+
+prices_range(data$transactions)
+```
+
+# What is the impact on sales of promotions, displays, or being featured in the circular?
+
+```{r}
+#' Product overview
+#'
+#' Helper functions to make visualizations
+#' @param ts A `tibble` containing the transactions data.
+#' @param selected_cat A `character` containing the selected product category.
+#' @returns A `ggplotly` object.
+product_overview <- function(ts, selected_cat) {
+    return(
+        ts |>
+            filter(category == selected_cat) |>
+            pivot_longer(
+                c(units, base_price, feature, display, tpr_only),
+                names_to = "col",
+                values_to = "value"
+            ) |>
+            ggplot(aes(x = week, y = value, color = col)) +
+            geom_line() +
+            facet_wrap(~col, scales = "free_y", ncol = 1) +
+            scale_fill_brewer(palette = "Set1") +
+            labs(title = glue("Product: {selected_cat}")) +
+            theme(
+                legend.position = "none",
+                axis.text.x = element_text(angle = 45, hjust = 1)
+            )
+    )
+}
+
+#' Product correlation
+#'
+#' Plot a pairplot to see if there is any correlation among the features.
+#' @param ts A `tibble` containing the transactions data.
+#' @param selected_cat A `character` containing the selected product category.
+#' @returns A `ggpairs` object.
+product_corr <- function(ts, selected_cat) {
+    return(
+        ts |>
+            filter(category == selected_cat) |>
+            mutate(
+                feature = ifelse(feature == 1, "True", "False"),
+                display = ifelse(display == 1, "True", "False"),
+                tpr_only = ifelse(tpr_only == 1, "True", "False")
+            ) |>
+            select(
+                -category,
+                -week
+            ) |>
+            ggpairs() +
+            labs(title = glue("Product: {selected_cat}")) +
+            theme_minimal(base_size = 9)
+    )
+}
+
+# I will aggregate the data by product category, in order to
+# compare promotions, displays and being featured against sales.
+# Aggregation will lost information but the idea is to obtain an overview.
+ts <- data$transactions |>
+    left_join(data$products, by = join_by(upc_id)) |>
+    as_tibble() |>
+    group_by(week, category) |>
+    summarise(
+        .groups = "drop",
+        units = sum(units, na.rm = TRUE),
+        visits = sum(visits, na.rm = TRUE),
+        base_price = mean(base_price, na.rm = TRUE),
+        feature = ceiling(mean(feature, na.rm = TRUE)),
+        display = ceiling(mean(display, na.rm = TRUE)),
+        tpr_only = ceiling(mean(tpr_only, na.rm = TRUE))
+    )
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_overview(ts, "BAG SNACKS") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_corr(ts, "BAG SNACKS") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_overview(ts, "ORAL HYGIENE PRODUCTS") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_corr(ts, "ORAL HYGIENE PRODUCTS") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_overview(ts, "COLD CEREAL") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_corr(ts, "COLD CEREAL") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_overview(ts, "FROZEN PIZZA") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+product_corr(ts, "FROZEN PIZZA") |> render_plot()
+```
+
+Observing the plots, we can see that exist correlation between units and promotions.
+This is expected, since promotions are done to increase sales. But, some promoted products
+don't show increase in sales. Further analysis is recommended for those products.
+Also, is visible that units is slightly correlated with base_price, since
+base_price represents the baseline price of the final price of the product.
+
+{{< pagebreak >}}
+
+# What is the impact on units/visits of promotions?
+
+```{r}
+#' Units/Visits promotion
+#'
+#' Helper functions to make visualizations.
+#' @param ts A `tibble` of the transactions data.
+#' @param selected_cat A `character` containing the product category to be selected.
+#' @returns A `ggplotly` object.
+units_visits_prom <- function(ts, selected_cat) {
+    return(
+        ts |>
+            filter(category == selected_cat) |>
+            mutate(units_visits = units / visits) |>
+            pivot_longer(
+                c(units_visits, feature, display, tpr_only),
+                names_to = "col",
+                values_to = "value"
+            ) |>
+            ggplot(aes(x = week, y = value, color = col)) +
+            geom_line() +
+            facet_wrap(~col, scales = "free_y", ncol = 1) +
+            scale_fill_brewer(palette = "Set1") +
+            labs(title = glue("Product: {selected_cat}")) +
+            theme(
+                legend.position = "none",
+                axis.text.x = element_text(angle = 45, hjust = 1)
+            )
+    )
+}
+```
+
+{{< pagebreak >}}
+
+```{r}
+units_visits_prom(ts, "BAG SNACKS") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+units_visits_prom(ts, "ORAL HYGIENE PRODUCTS") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+units_visits_prom(ts, "COLD CEREAL") |> render_plot()
+```
+
+{{< pagebreak >}}
+
+```{r}
+units_visits_prom(ts, "FROZEN PIZZA") |> render_plot()
+```
+
+In aggregated TS there isn't visible too much correlation among the
+units/visits and promotions because aggregated products are very noisy
+in promotional features.
+Further analysis along each TS individually (disaggregated) is recommended.
