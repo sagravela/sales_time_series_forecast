@@ -62,16 +62,18 @@ store_duplicates <- function(store) {
     left_join(store, by = join_by(store_id))
 
   # Create new category for `seg_value_name` to remove duplicated rows
-  store_processed <- store |>
-    mutate(
-      seg_value_name = ifelse(
-        store_id %in% repeated_stores$store_id,
-        "MAINSTREAM_UPSCALE",
-        seg_value_name
-      )
-    ) |>
-    distinct()
-  return(store_processed)
+  return(
+    store |>
+      mutate(
+        seg_value_name = ifelse(
+          store_id %in% repeated_stores$store_id,
+          "MAINSTREAM_UPSCALE",
+          seg_value_name
+        )
+      ) |>
+      distinct() |>
+      mutate(store_id = as.character(store_id))
+  )
 }
 
 # --------------------------------------------------------------------------- #
@@ -83,7 +85,11 @@ store_duplicates <- function(store) {
 #' @return A `tsibble` dataset with the formatted transactions.
 format_transactions <- function(transactions) {
   transactions_formatted <- transactions |>
-    mutate(week = yearweek(week_end_date)) |>
+    mutate(
+      week = yearweek(week_end_date),
+      upc_id = as.character(upc_id),
+      store_id = as.character(store_id)
+    ) |>
     as_tsibble(index = week, key = c(store_id, upc_id)) |>
     relocate(week)
   return(transactions_formatted)
@@ -112,19 +118,20 @@ converter <- function(x) {
 #' @param products A `tibble` containing the products data.
 #' @returns A `tibble` containing the cleaned products data.
 products_conversion <- function(products) {
-  products_converted <- products |>
-    mutate(
-      volume_ml = ifelse(
-        grepl("LT|ML", product_size),
-        sapply(product_size, converter), NA
-      ),
-      mass_oz = ifelse(
-        grepl("OZ|CT", product_size),
-        sapply(product_size, converter), NA
+  return(
+    products |>
+      mutate(
+        upc_id = as.character(upc_id),
+        volume_ml = ifelse(
+          grepl("LT|ML", product_size),
+          sapply(product_size, converter), NA
+        ),
+        mass_oz = ifelse(
+          grepl("OZ|CT", product_size),
+          sapply(product_size, converter), NA
+        )
       )
-    )
-
-  return(products_converted)
+  )
 }
 
 # --------------------------------------------------------------------------- #
