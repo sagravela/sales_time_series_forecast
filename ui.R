@@ -1,4 +1,4 @@
-### Stylized UI
+# Stylized UI
 
 # Spinner type
 options("spinner.type" = 8)

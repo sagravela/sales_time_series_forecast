@@ -1,4 +1,4 @@
-### SERVER LOGIC
+# SERVER LOGIC
 
 ## Server Logic
 server <- function(input, output, session) {
@@ -213,7 +213,7 @@ server <- function(input, output, session) {
       {
         rres() |>
           ggplot() +
-          geom_histogram(aes(x = .innov, fill = .model)) +
+          geom_histogram(aes(x = .innov, fill = .model), bins = 50) +
           facet_wrap(~.model, scales = "free") +
           scale_x_continuous(breaks = scales::extended_breaks(10)) +
           labs(x = "Residuals", y = "Count") +

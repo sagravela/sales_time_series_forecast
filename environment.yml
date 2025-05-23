@@ -21,3 +21,4 @@ dependencies:
   - r-fabletools
   - r-feasts
   - r-progressr
+  - r-dt
